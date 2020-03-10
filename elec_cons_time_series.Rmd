@@ -1,0 +1,94 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r}
+#Goal try to predict electricity consumption using pre-existing data
+require(forecast)   
+#Import dataset and split into train and test datasets
+train <- msts(Elec.train[1:2972,2], seasonal.periods = c(96),start=1 )
+test <- msts(Elec.train[2973:4507,2], seasonal.periods = c(96),start=32)
+temp <- msts(Elec.train[1:2972,3], seasonal.periods = c(96),start=1 )
+```
+
+```{r}
+ggseasonplot(train)
+#it seems to have a trend (positive)
+#Even after apply many differenciation the model is still hard to interpretate
+#It seems to exist a seasonnality 
+```
+
+```{r}
+ 
+fit_hw_add <- HoltWinters(ts(train,frequency=96),alpha = 0.0001, beta = NULL, gamma = NULL,seasonal = ("multiplicative"))
+prev_HW_add=predict(fit_hw_add,n.ahead=96)
+print(sqrt(mean((prev_HW_add-test)^2)))
+#The RMSE(=32.90) for HoltWinters with seasonnal multiplicative effect, so we keep this model
+
+
+pred_stlf=train %>% stlf(lambda=0)
+train %>% stlf(lambda=0) %>% autoplot
+print(sqrt(mean((pred_stlf$mean-test)^2)))
+#RMSE=32.45 for stlf model
+```
+
+```{r}
+fit=auto.arima(train)
+summary(fit)
+checkresiduals(fit)
+#ARIMA RMSE = 41.48
+
+prev=forecast(fit,h=96*16)
+print(sqrt(mean((prev$mean-test)^2)))
+#Try to apply the methode seen in course but after many diff we still see very high and numerous PACF and ACF
+
+```
+
+```{r}
+##NN
+fit_NN=nnetar(train,36)
+print(fit_NN)
+prevNN=forecast(fit_NN,h=96*16)
+
+plot(test,xlim=c(32,50),ylim=c(120,360))
+lines(prevNN$mean,col=6)
+lines(prev$mean,col=2)
+legend('topleft',col=1:3,lty=1,legend=c('true','forecast with NN','SARIMA'))
+print(sqrt(mean((prevNN$mean-test)^2)))
+
+#RMSE 23.12141 with 36 neurons
+#Quite a good fit we keep it for the model without covariate.
+```
+```{r}
+#export prediction for the model without covariate(temperature)
+write.csv(prev_with_cov,"prev_with_cov.csv", row.names = FALSE)
+#The rest is done on excel
+```
+
+```{r}
+######################### Using Temperature #####################
+#fit ARIMA
+fit_AR=auto.arima(train,xreg=train+temp)
+summary(fit_AR)
+prev_ar_cov1=forecast(fit_AR,h=96,xreg=train+temp)
+print(sqrt(mean((prev_ar_cov1$mean-test)^2)))
+#RMSE is 50.027
+#Even after testing several models it shows that temperature doesnot improve the fit
+```
+
+```{r}
+
+fit_hw_cov <- HoltWinters(ts(train+temp,frequency=96),alpha = 0.001, beta = NULL, gamma = NULL)
+prev_HW_cov=predict(fit_hw_cov,n.ahead=96)
+print(sqrt(mean((prev_HW_cov-test)^2)))
+#The RMSE(=33.43862) is lower than the previous one so we keep this model
+```
+
+```{r}
+#export prediction
+write.csv(prev_HW_cov,"prev_HW_cov.csv", row.names = FALSE)
+#The rest is done on excel
+require(rmarkdown)
+```
+
