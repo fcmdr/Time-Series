@@ -1,7 +1,7 @@
 # Time-Series
-Times Series with R software
+With R software
 
-Time series analysis using various datasets for example : Prediction of precipitation in San-Francisco, prediction of electricity consumption etc
+Time series analysis using various datasets for example : Prediction of precipitation in San-Francisco, electricity consumption etc
 
 Methods : By taking into account trend and seasonnality of the data. 
 
