@@ -1,5 +1,4 @@
-# Time-Series
-With R software
+# Time-Series with R
 
 Time series analysis using various datasets for example : Prediction of precipitation in San-Francisco, electricity consumption etc
 
